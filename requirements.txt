@@ -5,6 +5,6 @@ numpy
 requests
 beautifulsoup4
 selenium
-json5 @ file:///tmp/build/80754af9/json5_1624432770122/work
-jsonschema==4.23.0
-jsonschema-specifications==2024.10.1
+json5
+jsonschema
+jsonschema
