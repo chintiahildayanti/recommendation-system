@@ -4,6 +4,8 @@ import numpy as np      # Mengimpor numpy untuk operasi numerik
 import json     # Mengimpor json untuk bekerja dengan data JSON
 import ast      # Mengimpor ast untuk evaluasi string sebagai literal Python
 from sklearn.metrics.pairwise import cosine_similarity      # Mengimpor fungsi cosine_similarity dari sklearn
+import io       # Mengimpor io
+import requests     # Mengimpor requests
 
 # === Streamlit UI ===
 st.set_page_config(page_title="🏠 Top Property Recommendations by Bukit Vista", layout="wide")      # Mengatur konfigurasi halaman Streamlit
@@ -35,10 +37,13 @@ st.markdown(
 )
 
 # === Load Dataset ===
-@st.cache_data      # Men-cache data agar tidak perlu dimuat ulang setiap interaksi
+@st.cache_data  # Men-cache data agar tidak perlu dimuat ulang setiap interaksi
 def load_data():
-    file_path = r"C:\Users\IqbalKaldera\OneDrive\Documents\Dibimbing\bukit_vista_web_scraper\data_bukit_vista.xlsx"  # Menentukan path file dataset
-    df = pd.read_excel(file_path, dtype={"price_info": str})  # Membaca file Excel dan memastikan kolom 'price_info' tetap string
+    url = "https://raw.githubusercontent.com/chintiahildayanti/recommendation-system/main/data_bukit_vista.xlsx"  
+    response = requests.get(url)
+    response.raise_for_status()  # Pastikan request berhasil
+
+    df = pd.read_excel(io.BytesIO(response.content), dtype={"price_info": str})  # Baca Excel dari memory dan memastikan kolom 'price_info' tetap string
     return df
 
 df = load_data()       # Memuat dataset 
