@@ -8,3 +8,4 @@ selenium
 json5
 jsonschema
 jsonschema
+openpyxl
