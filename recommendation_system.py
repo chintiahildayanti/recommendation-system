@@ -5,7 +5,11 @@ import json     # Mengimpor json untuk bekerja dengan data JSON
 import ast      # Mengimpor ast untuk evaluasi string sebagai literal Python
 from sklearn.metrics.pairwise import cosine_similarity      # Mengimpor fungsi cosine_similarity dari sklearn
 import io       # Mengimpor io
-import requests     # Mengimpor requests
+import os       # Mengimpor os
+import re       # Mengimpor re
+import datetime # Mengimpor satetime
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
 
 # === Streamlit UI ===
 st.set_page_config(page_title="🏠 Top Property Recommendations by Bukit Vista", layout="wide")      # Mengatur konfigurasi halaman Streamlit
@@ -36,17 +40,70 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# === Load Dataset ===
-@st.cache_data  # Men-cache data agar tidak perlu dimuat ulang setiap interaksi
-def load_data():
-    url = "https://raw.githubusercontent.com/chintiahildayanti/recommendation-system/main/data_bukit_vista.xlsx"  
-    response = requests.get(url)
-    response.raise_for_status()  # Pastikan request berhasil
+# === Autentikasi Google Drive API ===
+@st.cache_resource
+def get_drive_service():
+    creds = service_account.Credentials.from_service_account_file("credential.json")
+    return build("drive", "v3", credentials=creds)
 
-    df = pd.read_excel(io.BytesIO(response.content), dtype={"price_info": str})  # Baca Excel dari memory dan memastikan kolom 'price_info' tetap string
-    return df
+# === Fungsi untuk Mendapatkan File Terbaru di Google Drive ===
+@st.cache_data
+def get_latest_file(folder_id):
+    drive_service = get_drive_service()
 
-df = load_data()       # Memuat dataset 
+    # Ambil daftar file dari folder
+    results = drive_service.files().list(
+        q=f"'{folder_id}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'",
+        fields="files(id, name, createdTime)",
+        orderBy="createdTime desc"
+    ).execute()
+
+    files = results.get("files", [])
+    if not files:
+        st.error("❌ Tidak ada file yang ditemukan di Google Drive.")
+        return None, None
+
+    # Cari file dengan pola nama data_bukit_vista_DD-MM-YYYY.xlsx
+    file_pattern = re.compile(r"data_bukit_vista_(\d{2}-\d{2}-\d{4})\.xlsx")
+    latest_file = None
+    latest_date = None
+
+    for file in files:
+        match = file_pattern.match(file["name"])
+        if match:
+            file_date = datetime.datetime.strptime(match.group(1), "%d-%m-%Y")
+            if latest_date is None or file_date > latest_date:
+                latest_date = file_date
+                latest_file = file
+
+    if latest_file:
+        return latest_file["id"], latest_file["name"]
+    else:
+        st.error("❌ Tidak ditemukan file dengan format nama yang diharapkan.")
+        return None, None
+
+# === Fungsi untuk Mengunduh dan Membaca File Terbaru ===
+@st.cache_data
+def load_latest_data(folder_id):
+    file_id, file_name = get_latest_file(folder_id)
+    if file_id is None:
+        return None
+
+    drive_service = get_drive_service()
+    request = drive_service.files().get_media(fileId=file_id)
+    file_content = io.BytesIO(request.execute())
+
+    df = pd.read_excel(file_content, dtype={"price_info": str})
+    return df, file_name
+
+# === Load Data dari Google Drive ===
+FOLDER_ID = "1zdLvHzqvv0PGJ6Bt5zhL52yxMTi845ou"  # Ganti dengan ID folder Google Drive Anda
+df, file_name = load_latest_data(FOLDER_ID)
+
+if df is None:
+    st.stop()  # Hentikan eksekusi jika data tidak ditemukan
+
+st.success(f"✅ Data berhasil dimuat dari: **{file_name}**")
 
 # === Process DataFrame Features ===
 feature_columns = [         # Menentukan kolom fitur yang digunakan untuk perhitungan
@@ -90,13 +147,16 @@ def recommend_properties(property_title, top_n=4):
     return df.iloc[similar_indices][["title", "image_url", "price_info", "area", "property_type"]]      # Mengembalikan hasil rekomendasi
 
 # **Header**
-st.markdown("<h1 style='text-align: center; color:rgb(247, 248, 251);'>Discover the Finest Vacation Rentals in Bali and Yogyakarta</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: black;'>Discover the Finest Vacation Rentals in Bali and Yogyakarta</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center;'>We are here to fulfill your desire for great comfort, whether for a short-term or long-term stay in Bali or Yogyakarta.</p>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center;'>The choice is yours.</p>", unsafe_allow_html=True)
 st.markdown("---")      # Menambahkan garis pemisah
 
-# **Select Property Title from Dropdown**
-selected_property_title = st.selectbox("🔎 Select a Property:", df["title"].unique())       # Dropdown untuk memilih properti
+# **Select area from Dropdown**
+selected_property_title = st.selectbox("🔎 Select Area:", df["area"].unique())       # Dropdown untuk memilih properti
+
+# **Select Property Type from Dropdown**
+selected_property_title = st.selectbox("🔎 Select Property Type:", df["property_type"].unique())       # Dropdown untuk memilih properti
 
 # **Button to Get Recommendations**
 if st.button("✨ Get Recommendations"):     # Tombol untuk mendapatkan rekomendasi
