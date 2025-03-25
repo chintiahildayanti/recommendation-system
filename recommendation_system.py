@@ -42,7 +42,18 @@ st.markdown(
 )
 
 # === Autentikasi Google Drive API ===
-# === Autentikasi Google Drive API ===
+import os
+import io
+import re
+import json
+import base64
+import datetime
+import pandas as pd
+import streamlit as st
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+
+# === Setup Google Drive API Credentials ===
 @st.cache_resource
 def get_drive_service():
     credential_base64 = os.getenv("CREDENTIAL_JSON")  # Ambil kredensial dalam format Base64
@@ -52,9 +63,17 @@ def get_drive_service():
         return None
 
     try:
+        # Decode Base64 dan simpan sebagai file sementara
         credential_json = base64.b64decode(credential_base64).decode("utf-8")
-        creds_dict = json.loads(credential_json)
-        creds = service_account.Credentials.from_service_account_info(creds_dict)
+        credential_path = "/tmp/credentials.json"
+        with open(credential_path, "w") as f:
+            f.write(credential_json)
+
+        # Set environment variable untuk Google API
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credential_path
+
+        # Load credentials dari file JSON
+        creds = service_account.Credentials.from_service_account_file(credential_path)
         service = build("drive", "v3", credentials=creds)
         st.success("✅ Google Drive API berhasil diinisialisasi!")
         return service
