@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main  # Workflow ini akan berjalan ketika ada perubahan di branch 'main'
+  workflow_dispatch:      # Trigger manual dari GitHub Actions UI
 
 jobs:
   build:
