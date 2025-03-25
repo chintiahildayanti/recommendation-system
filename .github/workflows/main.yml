@@ -1,0 +1,4 @@
+- name: Set up Google Credentials
+  run: echo "$credential_json" > credential.json
+  env:
+    credential_json: ${{ secrets.credential_json }}
