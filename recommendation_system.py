@@ -7,7 +7,6 @@ from sklearn.metrics.pairwise import cosine_similarity      # Mengimpor fungsi c
 import io       # Mengimpor io
 import os       # Mengimpor os
 import re       # Mengimpor re
-import base64
 import datetime # Mengimpor satetime
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -41,39 +40,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# === Autentikasi Google Drive API ===
-import os
-import io
-import re
-import json
-import base64
-import datetime
-import pandas as pd
-import streamlit as st
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-
 # === Setup Google Drive API Credentials ===
 @st.cache_resource
 def get_drive_service():
-    credential_base64 = os.getenv("CREDENTIAL_JSON")  # Ambil kredensial dalam format Base64
-
-    if credential_base64 is None:
-        st.error("❌ Secret 'CREDENTIAL_JSON' tidak ditemukan. Periksa konfigurasi di GitHub Secrets atau Streamlit Secrets.")
-        return None
-
     try:
-        # Decode Base64 dan simpan sebagai file sementara
-        credential_json = base64.b64decode(credential_base64).decode("utf-8")
-        credential_path = "/tmp/credentials.json"
-        with open(credential_path, "w") as f:
-            f.write(credential_json)
-
-        # Set environment variable untuk Google API
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credential_path
-
-        # Load credentials dari file JSON
-        creds = service_account.Credentials.from_service_account_file(credential_path)
+        # Ambil kredensial dari Streamlit secrets
+        credentials_info = json.loads(st.secrets["gdrive"]["credentials"])
+        creds = service_account.Credentials.from_service_account_info(credentials_info)
         service = build("drive", "v3", credentials=creds)
         st.success("✅ Google Drive API berhasil diinisialisasi!")
         return service
@@ -120,11 +93,11 @@ def get_latest_file(folder_id):
 def load_latest_data(folder_id):
     file_id, file_name = get_latest_file(folder_id)
     if file_id is None:
-        return None
+        return None, None
 
     drive_service = get_drive_service()
     if drive_service is None:
-        return None
+        return None, None
 
     request = drive_service.files().get_media(fileId=file_id)
     file_content = io.BytesIO(request.execute())
