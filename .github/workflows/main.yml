@@ -3,8 +3,8 @@ name: Deploy Recommendation System
 on:
   push:
     branches:
-      - main  # Workflow ini akan berjalan ketika ada perubahan di branch 'main'
-  workflow_dispatch:      # Trigger manual dari GitHub Actions UI
+      - main  # Workflow berjalan saat ada perubahan di branch 'main'
+  workflow_dispatch:      # Bisa dijalankan manual dari GitHub Actions UI
 
 jobs:
   build:
@@ -27,12 +27,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt  # Install dependencies dari requirements.txt
 
-      # Step 4: Set up Google Credentials (menggunakan secret credential_json)
+      # Step 4: Set up Google Credentials
       - name: Set up Google Credentials
-        run: echo "$credential_json" > credential.json  # Menulis kredensial dari GitHub Secrets ke file credential.json
+        run: |
+          echo "$CREDENTIAL_JSON" | base64 --decode > credentials.json  # Decode Base64 dan simpan sebagai file
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$GITHUB_WORKSPACE/credentials.json" >> $GITHUB_ENV  # Set environment variable
         env:
-          credential_json: ${{ secrets.credential_json }}  # Ambil isi dari GitHub Secret 'credential_json'
+          CREDENTIAL_JSON: ${{ secrets.CREDENTIAL_JSON }}  # Ambil isi dari GitHub Secret 'CREDENTIAL_JSON'
 
       # Step 5: Run the Recommendation System
       - name: Run recommendation_system.py
-        run: python recommendation_system.py  # Menjalankan file recommendation_system.py
+        run: python recommendation_system.py  # Jalankan sistem rekomendasi
