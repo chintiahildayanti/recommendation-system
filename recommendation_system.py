@@ -144,14 +144,18 @@ combined_features = np.array([np.hstack([row[col] for col in feature_columns if 
 similarity_matrix = cosine_similarity(combined_features)
 
 # === Property Recommendation Function ===
-def recommend_properties(property_title, top_n=4):
-    if property_title not in df["title"].values:
-        return "Property not found"     # Mengembalikan pesan jika properti tidak ditemukan
+def recommend_properties(selected_area, selected_property_type, top_n=4):
+    # Filter dataset berdasarkan area dan property type
+    filtered_df = df[(df["area"] == selected_area) & (df["property_type"] == selected_property_type)]
 
-    idx = df[df["title"] == property_title].index[0]        # Mendapatkan indeks properti yang dipilih
-    similar_indices = np.argsort(similarity_matrix[idx])[::-1][1:top_n+1]       # Mendapatkan indeks properti serupa
+    if filtered_df.empty:
+        return "No properties found for this selection"
 
-    return df.iloc[similar_indices][["title", "image_url", "price_info", "area", "property_type"]]      # Mengembalikan hasil rekomendasi
+    # Menggunakan properti pertama sebagai referensi untuk rekomendasi
+    reference_index = filtered_df.index[0]
+    similar_indices = np.argsort(similarity_matrix[reference_index])[::-1][1:top_n+1]
+
+    return df.iloc[similar_indices][["title", "image_url", "price_info", "area", "property_type"]]
 
 # **Header**
 st.markdown("<h1 style='text-align: center; color: black;'>Discover the Finest Vacation Rentals in Bali and Yogyakarta</h1>", unsafe_allow_html=True)
@@ -159,14 +163,15 @@ st.markdown("<p style='text-align: center;'>We are here to fulfill your desire f
 st.markdown("<p style='text-align: center;'>The choice is yours.</p>", unsafe_allow_html=True)
 st.markdown("---")      # Menambahkan garis pemisah
 
-# **Select area from Dropdown**
-selected_property_title = st.selectbox("🔎 Select Area:", df["area"].unique())       # Dropdown untuk memilih properti
+# **Dropdown untuk memilih Area dan Property Type**
+selected_area = st.selectbox("📍 Select Area:", df["area"].unique())
+selected_property_type = st.selectbox("🏠 Select Property Type:", df["property_type"].unique())
 
 # **Button to Get Recommendations**
-if st.button("✨ Get Recommendations"):     # Tombol untuk mendapatkan rekomendasi
-    recommended = recommend_properties(selected_property_title)
+if st.button("✨ Get Recommendations"):
+    recommended = recommend_properties(selected_area, selected_property_type)
 
-    if isinstance(recommended, str):        # Jika properti tidak ditemukan, tampilkan pesan error
+    if isinstance(recommended, str):  # Jika properti tidak ditemukan, tampilkan pesan error
         st.error(recommended)
     else:
         st.markdown("<h3 style='text-align: left;'>✔ Exclusive Property Recommendations Just for You</h3>", unsafe_allow_html=True)
@@ -175,9 +180,9 @@ if st.button("✨ Get Recommendations"):     # Tombol untuk mendapatkan rekomend
         cols = st.columns(2)  # Membagi tampilan ke dalam 2 kolom
         for idx, (_, row) in enumerate(recommended.iterrows()):
             with cols[idx % 2]:
-                st.image(row["image_url"], width=350)  # Menampilkan gambar properti
-                st.subheader(row["title"])      # Menampilkan judul properti
-                st.write(f"🗺️ **Location:** {row['area']}")     # Menampilkan lokasi properti
-                st.write(f"🏡 **Type:** {row['property_type']}")        # Menampilkan tipe properti
-                st.write(f"💸 **Price:** {row['price_info']}")  # Menampilkan harga properti
-                st.markdown("---")      # Menambahkan garis pemisah antar properti
+                st.image(row["image_url"], width=350)
+                st.subheader(row["title"])
+                st.write(f"🗺️ **Location:** {row['area']}")
+                st.write(f"🏡 **Type:** {row['property_type']}")
+                st.write(f"💸 **Price:** {row['price_info']}")
+                st.markdown("---")
