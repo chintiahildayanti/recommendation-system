@@ -43,6 +43,15 @@ st.markdown(
 # === Autentikasi Google Drive API ===
 @st.cache_resource
 def get_drive_service():
+    # Mengakses isi GitHub Secret dan menulisnya ke file credential.json
+    credential_json = os.getenv("credential_json")  # Mengambil isi dari GitHub Secret
+    if credential_json is None:
+        st.error("❌ Secret 'credential_json' tidak ditemukan.")
+        return None
+    
+    with open("credential.json", "w") as f:
+        f.write(credential_json)
+    
     creds = service_account.Credentials.from_service_account_file("credential.json")
     return build("drive", "v3", credentials=creds)
 
@@ -50,6 +59,11 @@ def get_drive_service():
 @st.cache_data
 def get_latest_file(folder_id):
     drive_service = get_drive_service()
+
+    # Pastikan drive_service berhasil dibuat
+    if drive_service is None:
+        st.error("❌ Gagal menginisialisasi Google Drive service.")
+        return None, None
 
     # Ambil daftar file dari folder
     results = drive_service.files().list(
@@ -90,6 +104,9 @@ def load_latest_data(folder_id):
         return None
 
     drive_service = get_drive_service()
+    if drive_service is None:
+        return None
+
     request = drive_service.files().get_media(fileId=file_id)
     file_content = io.BytesIO(request.execute())
 
