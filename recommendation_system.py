@@ -7,6 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity      # Mengimpor fungsi c
 import io       # Mengimpor io
 import os       # Mengimpor os
 import re       # Mengimpor re
+import base64
 import datetime # Mengimpor satetime
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -41,31 +42,33 @@ st.markdown(
 )
 
 # === Autentikasi Google Drive API ===
+# === Autentikasi Google Drive API ===
 @st.cache_resource
 def get_drive_service():
-    # Mengakses isi GitHub Secret dan menulisnya ke file credential.json
-    credential_json = os.getenv("credential_json")  # Mengambil isi dari GitHub Secret
-    if credential_json is None:
-        st.error("❌ Secret 'credential_json' tidak ditemukan.")
+    credential_base64 = os.getenv("CREDENTIAL_JSON")  # Ambil kredensial dalam format Base64
+
+    if credential_base64 is None:
+        st.error("❌ Secret 'CREDENTIAL_JSON' tidak ditemukan. Periksa konfigurasi di GitHub Secrets atau Streamlit Secrets.")
         return None
-    
-    with open("credential.json", "w") as f:
-        f.write(credential_json)
-    
-    creds = service_account.Credentials.from_service_account_file("credential.json")
-    return build("drive", "v3", credentials=creds)
+
+    try:
+        credential_json = base64.b64decode(credential_base64).decode("utf-8")
+        creds_dict = json.loads(credential_json)
+        creds = service_account.Credentials.from_service_account_info(creds_dict)
+        service = build("drive", "v3", credentials=creds)
+        st.success("✅ Google Drive API berhasil diinisialisasi!")
+        return service
+    except Exception as e:
+        st.error(f"❌ Gagal menginisialisasi Google Drive API: {e}")
+        return None
 
 # === Fungsi untuk Mendapatkan File Terbaru di Google Drive ===
 @st.cache_data
 def get_latest_file(folder_id):
     drive_service = get_drive_service()
-
-    # Pastikan drive_service berhasil dibuat
     if drive_service is None:
-        st.error("❌ Gagal menginisialisasi Google Drive service.")
         return None, None
 
-    # Ambil daftar file dari folder
     results = drive_service.files().list(
         q=f"'{folder_id}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'",
         fields="files(id, name, createdTime)",
@@ -74,10 +77,8 @@ def get_latest_file(folder_id):
 
     files = results.get("files", [])
     if not files:
-        st.error("❌ Tidak ada file yang ditemukan di Google Drive.")
         return None, None
 
-    # Cari file dengan pola nama data_bukit_vista_DD-MM-YYYY.xlsx
     file_pattern = re.compile(r"data_bukit_vista_(\d{2}-\d{2}-\d{4})\.xlsx")
     latest_file = None
     latest_date = None
@@ -93,7 +94,6 @@ def get_latest_file(folder_id):
     if latest_file:
         return latest_file["id"], latest_file["name"]
     else:
-        st.error("❌ Tidak ditemukan file dengan format nama yang diharapkan.")
         return None, None
 
 # === Fungsi untuk Mengunduh dan Membaca File Terbaru ===
@@ -109,16 +109,18 @@ def load_latest_data(folder_id):
 
     request = drive_service.files().get_media(fileId=file_id)
     file_content = io.BytesIO(request.execute())
-
     df = pd.read_excel(file_content, dtype={"price_info": str})
     return df, file_name
 
 # === Load Data dari Google Drive ===
-FOLDER_ID = "1zdLvHzqvv0PGJ6Bt5zhL52yxMTi845ou"  # Ganti dengan ID folder Google Drive Anda
-df, file_name = load_latest_data(FOLDER_ID)
+FOLDER_ID = "1zdLvHzqvv0PGJ6Bt5zhL52yxMTi845ou"
+result = load_latest_data(FOLDER_ID)
+if result is None:
+    raise ValueError("load_latest_data() returned None. Check if the folder contains the necessary files.")
+df, file_name = result
 
 if df is None:
-    st.stop()  # Hentikan eksekusi jika data tidak ditemukan
+    st.stop()
 
 st.success(f"✅ Data berhasil dimuat dari: **{file_name}**")
 
