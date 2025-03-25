@@ -185,4 +185,3 @@ if st.button("✨ Get Recommendations"):
                 st.write(f"🗺️ **Location:** {row['area']}")
                 st.write(f"🏡 **Type:** {row['property_type']}")
                 st.write(f"💸 **Price:** {row['price_info']}")
-                st.markdown("---")
