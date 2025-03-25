@@ -48,10 +48,8 @@ def get_drive_service():
         credentials_info = json.loads(st.secrets["gdrive"]["credentials"])
         creds = service_account.Credentials.from_service_account_info(credentials_info)
         service = build("drive", "v3", credentials=creds)
-        st.success("✅ Google Drive API berhasil diinisialisasi!")
         return service
     except Exception as e:
-        st.error(f"❌ Gagal menginisialisasi Google Drive API: {e}")
         return None
 
 # === Fungsi untuk Mendapatkan File Terbaru di Google Drive ===
@@ -114,8 +112,6 @@ df, file_name = result
 if df is None:
     st.stop()
 
-st.success(f"✅ Data berhasil dimuat dari: **{file_name}**")
-
 # === Process DataFrame Features ===
 feature_columns = [         # Menentukan kolom fitur yang digunakan untuk perhitungan
     'title_vectorizer', 'property_type_vectorizer', 
@@ -165,9 +161,6 @@ st.markdown("---")      # Menambahkan garis pemisah
 
 # **Select area from Dropdown**
 selected_property_title = st.selectbox("🔎 Select Area:", df["area"].unique())       # Dropdown untuk memilih properti
-
-# **Select Property Type from Dropdown**
-selected_property_title = st.selectbox("🔎 Select Property Type:", df["property_type"].unique())       # Dropdown untuk memilih properti
 
 # **Button to Get Recommendations**
 if st.button("✨ Get Recommendations"):     # Tombol untuk mendapatkan rekomendasi
