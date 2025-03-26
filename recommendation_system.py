@@ -36,7 +36,7 @@ st.markdown(
 
 # Menampilkan logo dengan jarak yang lebih dekat
 st.markdown(
-    '<div class="centered-content"><img src="https://www.bukitvista.com/wp-content/uploads/2021/06/BukitVista-LOGO-ONLY-transparent.png" width="100" class="centered-image"></div>',
+    '<div class="centered-content"><img src="https://www.bukitvista.com/wp-content/uploads/2021/06/BukitVista-LOGO-ONLY-transparent.png" width="150" class="centered-image"></div>',
     unsafe_allow_html=True
 )
 
@@ -168,7 +168,7 @@ st.markdown(
     """
     <style>
     div[data-baseweb="select"] {
-        width: 300px !important; /* Sesuaikan lebar sesuai kebutuhan */
+        width: 600px !important;
     }
     </style>
     """,
