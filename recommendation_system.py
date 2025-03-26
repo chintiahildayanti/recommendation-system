@@ -159,7 +159,7 @@ def recommend_properties(selected_area, selected_property_type, top_n=4):
 
 # **Header**
 st.markdown(
-    "<h2 style='text-align: center; color: black; font-size: 80px;'>"
+    "<h2 style='text-align: center; color: black; font-size: 40px;'>"
     "Discover the Finest Vacation Rentals in Bali and Yogyakarta</h2>",
     unsafe_allow_html=True
 )
