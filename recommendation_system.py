@@ -24,10 +24,18 @@ st.markdown(
         justify-content: center;
         align-items: center;
         height: auto;
-        margin-top: 5px; /* Menambahkan jarak ke atas */
+        margin-top: 0px; /* Kurangi jarak ke atas */
+        gap: 5px; /* Atur jarak antar elemen */
     }
     .centered-image {
-        margin-top: 3px; /* Menambahkan jarak antara gambar dan teks */
+        margin-top: 0px; /* Kurangi jarak gambar dengan teks */
+    }
+    h1, h2, h3, p {
+        margin-bottom: 5px !important; /* Kurangi jarak antar teks */
+    }
+    .stSelectbox, .stButton {
+        padding: 5px 10px; /* Atur padding agar lebih compact */
+        margin: 2px 0px; /* Kurangi margin antar elemen */
     }
     </style>
     """, 
