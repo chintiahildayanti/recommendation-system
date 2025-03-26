@@ -180,7 +180,7 @@ st.markdown(
 )
 
 # **Dropdown untuk memilih Area dan Property Type**
-selected_area = st.selectbox("📍 Select Area:", df["area"].unique())
+selected_area = st.selectbox("📍 Select Location:", df["area"].unique())
 selected_property_type = st.selectbox("🏠 Select Property Type:", df["property_type"].unique())
 
 # **Button to Get Recommendations**
