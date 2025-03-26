@@ -24,18 +24,13 @@ st.markdown(
         justify-content: center;
         align-items: center;
         height: auto;
-        margin-top: 0px; /* Menambahkan jarak ke atas */
+        margin-top: 10px; /* Menambahkan jarak ke atas */
     }
     .centered-image {
-        margin-top: 0px; /* Menambahkan jarak antara gambar dan teks */
+        margin-top: 5px; /* Menambahkan jarak antara gambar dan teks */
     }
     </style>
-    """, 
-    unsafe_allow_html=True
-)
-
-# Menampilkan logo dengan jarak yang lebih dekat
-st.markdown(
+    """,
     '<div class="centered-content"><img src="https://www.bukitvista.com/wp-content/uploads/2021/06/BukitVista-LOGO-ONLY-transparent.png" width="200" class="centered-image"></div>',
     unsafe_allow_html=True
 )
@@ -162,6 +157,18 @@ st.markdown("<h1 style='text-align: center; color: black;'>Discover the Finest V
 st.markdown("<p style='text-align: center;'>We are here to fulfill your desire for great comfort, whether for a short-term or long-term stay in Bali or Yogyakarta.</p>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center;'>The choice is yours.</p>", unsafe_allow_html=True)
 st.markdown("---")      # Menambahkan garis pemisah
+
+# Tambahkan CSS untuk mengatur lebar selectbox
+st.markdown(
+    """
+    <style>
+    div[data-baseweb="select"] {
+        width: 300px !important; /* Sesuaikan lebar sesuai kebutuhan */
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # **Dropdown untuk memilih Area dan Property Type**
 selected_area = st.selectbox("📍 Select Area:", df["area"].unique())
