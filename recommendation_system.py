@@ -30,8 +30,13 @@ st.markdown(
         margin-top: 5px; /* Menambahkan jarak antara gambar dan teks */
     }
     </style>
-    """,
-    '<div class="centered-content"><img src="https://www.bukitvista.com/wp-content/uploads/2021/06/BukitVista-LOGO-ONLY-transparent.png" width="200" class="centered-image"></div>',
+    """, 
+    unsafe_allow_html=True
+)
+
+# Menampilkan logo dengan jarak yang lebih dekat
+st.markdown(
+    '<div class="centered-content"><img src="https://www.bukitvista.com/wp-content/uploads/2021/06/BukitVista-LOGO-ONLY-transparent.png" width="100" class="centered-image"></div>',
     unsafe_allow_html=True
 )
 
