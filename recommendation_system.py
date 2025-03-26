@@ -24,10 +24,10 @@ st.markdown(
         justify-content: center;
         align-items: center;
         height: auto;
-        margin-top: 20px; /* Menambahkan jarak ke atas */
+        margin-top: 10px; /* Menambahkan jarak ke atas */
     }
     .centered-image {
-        margin-top: 10px; /* Menambahkan jarak antara gambar dan teks */
+        margin-top: 5px; /* Menambahkan jarak antara gambar dan teks */
     }
     </style>
     """, 
