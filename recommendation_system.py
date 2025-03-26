@@ -158,7 +158,11 @@ def recommend_properties(selected_area, selected_property_type, top_n=4):
     return df.iloc[similar_indices][["title", "image_url", "price_info", "area", "property_type"]]
 
 # **Header**
-st.markdown("<h1 style='text-align: center; color: black;'>Discover the Finest Vacation Rentals in Bali and Yogyakarta</h1>", unsafe_allow_html=True)
+st.markdown(
+    "<h2 style='text-align: center; color: black; font-size: 20px;'>"
+    "Discover the Finest Vacation Rentals in Bali and Yogyakarta</h2>",
+    unsafe_allow_html=True
+)
 st.markdown("<p style='text-align: center;'>We are here to fulfill your desire for great comfort, whether for a short-term or long-term stay in Bali or Yogyakarta.</p>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center;'>The choice is yours.</p>", unsafe_allow_html=True)
 st.markdown("---")      # Menambahkan garis pemisah
