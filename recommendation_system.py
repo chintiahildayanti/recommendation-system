@@ -8,8 +8,8 @@ import io       # Mengimpor io
 import os       # Mengimpor os
 import re       # Mengimpor re
 import datetime # Mengimpor satetime
-from googleapiclient.discovery import build
-from google.oauth2 import service_account
+from googleapiclient.discovery import build    # Import library untuk membangun layanan Google API
+from google.oauth2 import service_account    # Import library untuk autentikasi menggunakan service account
 
 # === Streamlit UI ===
 st.set_page_config(page_title="🏠 Top Property Recommendations by Bukit Vista", layout="wide")      # Mengatur konfigurasi halaman Streamlit
@@ -31,31 +31,31 @@ st.markdown(
     }
     </style>
     """, 
-    unsafe_allow_html=True
+    unsafe_allow_html=True    # Mengizinkan penggunaan HTML dalam markdown
 )
 
 # Menampilkan logo dengan jarak yang lebih dekat
 st.markdown(
     '<div class="centered-content"><img src="https://www.bukitvista.com/wp-content/uploads/2021/06/BukitVista-LOGO-ONLY-transparent.png" width="150" class="centered-image"></div>',
-    unsafe_allow_html=True
+    unsafe_allow_html=True    # Mengizinkan HTML untuk menampilkan gambar
 )
 
 # === Setup Google Drive API Credentials ===
-@st.cache_resource
+@st.cache_resource        # Cache hasil untuk efisiensi pemanggilan ulang
 def get_drive_service():
     try:
         # Ambil kredensial dari Streamlit secrets
-        credentials_info = json.loads(st.secrets["gdrive"]["credentials"])
-        creds = service_account.Credentials.from_service_account_info(credentials_info)
-        service = build("drive", "v3", credentials=creds)
+        credentials_info = json.loads(st.secrets["gdrive"]["credentials"])    # Mengambil kredensial dari secrets
+        creds = service_account.Credentials.from_service_account_info(credentials_info)    # Membuat objek kredensial
+        service = build("drive", "v3", credentials=creds)    # Membangun service Google Drive
         return service
     except Exception as e:
-        return None
+        return None    # Jika gagal, kembalikan None
 
 # === Fungsi untuk Mendapatkan File Terbaru di Google Drive ===
-@st.cache_data
+@st.cache_data        # Cache hasil untuk efisiensi
 def get_latest_file(folder_id):
-    drive_service = get_drive_service()
+    drive_service = get_drive_service()    # Ambil service Google Drive
     if drive_service is None:
         return None, None
 
@@ -63,7 +63,7 @@ def get_latest_file(folder_id):
         q=f"'{folder_id}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'",
         fields="files(id, name, createdTime)",
         orderBy="createdTime desc"
-    ).execute()
+    ).execute()    # Ambil list file dalam folder yang sesuai kriteria
 
     files = results.get("files", [])
     if not files:
