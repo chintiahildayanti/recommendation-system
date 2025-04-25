@@ -53,69 +53,69 @@ def get_drive_service():
         return None    # Jika gagal, kembalikan None
 
 # === Fungsi untuk Mendapatkan File Terbaru di Google Drive ===
-@st.cache_data        # Cache hasil untuk efisiensi
+@st.cache_data        # Cache hasil agar tidak download ulang tiap reload
 def get_latest_file(folder_id):
     drive_service = get_drive_service()    # Ambil service Google Drive
-    if drive_service is None:
+    if drive_service is None:        # Jika gagal, keluar
         return None, None
 
-    results = drive_service.files().list(
+    results = drive_service.files().list(    # Mengambil file Excel dalam folder berdasarkan ID folder
         q=f"'{folder_id}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'",
-        fields="files(id, name, createdTime)",
-        orderBy="createdTime desc"
+        fields="files(id, name, createdTime)",        # Hanya ambil ID, nama, dan tanggal dibuat
+        orderBy="createdTime desc"        # Urutkan dari file terbaru
     ).execute()    # Ambil list file dalam folder yang sesuai kriteria
 
-    files = results.get("files", [])
-    if not files:
+    files = results.get("files", [])    # Ambil list file
+    if not files:    # Jika kosong, kembalikan None
         return None, None
 
-    file_pattern = re.compile(r"data_bukit_vista_(\d{2}-\d{2}-\d{4})\.xlsx")
+    file_pattern = re.compile(r"data_bukit_vista_(\d{2}-\d{2}-\d{4})\.xlsx")    # Pola nama file
     latest_file = None
     latest_date = None
 
-    for file in files:
-        match = file_pattern.match(file["name"])
+    for file in files:    # Loop tiap file
+        match = file_pattern.match(file["name"])    # Cek apakah nama file sesuai pola
         if match:
-            file_date = datetime.datetime.strptime(match.group(1), "%d-%m-%Y")
-            if latest_date is None or file_date > latest_date:
+            file_date = datetime.datetime.strptime(match.group(1), "%d-%m-%Y")    # Parsing tanggal dari nama file
+            if latest_date is None or file_date > latest_date:    # Cari tanggal terbaru
                 latest_date = file_date
-                latest_file = file
+                latest_file = file    # Simpan file terbaru
 
-    if latest_file:
-        return latest_file["id"], latest_file["name"]
+    if latest_file:    # Jika ditemukan file
+        return latest_file["id"], latest_file["name"]    # Kembalikan ID dan nama
     else:
         return None, None
 
 # === Fungsi untuk Mengunduh dan Membaca File Terbaru ===
-@st.cache_data
+@st.cache_data    # Cache data yang sudah di-load
 def load_latest_data(folder_id):
-    file_id, file_name = get_latest_file(folder_id)
-    if file_id is None:
+    file_id, file_name = get_latest_file(folder_id)    # Ambil file terbaru
+    if file_id is None:    # Jika tidak ada
         return None, None
 
-    drive_service = get_drive_service()
+    drive_service = get_drive_service()    # Ambil service Drive
     if drive_service is None:
         return None, None
 
-    request = drive_service.files().get_media(fileId=file_id)
-    file_content = io.BytesIO(request.execute())
-    df = pd.read_excel(file_content, dtype={"price_info": str})
-    return df, file_name
+    request = drive_service.files().get_media(fileId=file_id)    # Request untuk download file
+    file_content = io.BytesIO(request.execute())    # Simpan hasil download ke memory
+    df = pd.read_excel(file_content, dtype={"price_info": str})    # Baca file Excel ke dataframe
+    return df, file_name    # Kembalikan dataframe dan nama file
 
 # === Load Data dari Google Drive ===
-FOLDER_ID = "1zdLvHzqvv0PGJ6Bt5zhL52yxMTi845ou"
-result = load_latest_data(FOLDER_ID)
+FOLDER_ID = "1zdLvHzqvv0PGJ6Bt5zhL52yxMTi845ou"    # ID folder Google Drive
+result = load_latest_data(FOLDER_ID)    # Load data terbaru dari folder
 if result is None:
-    raise ValueError("load_latest_data() returned None. Check if the folder contains the necessary files.")
-df, file_name = result
+    raise ValueError("load_latest_data() returned None. Check if the folder contains the necessary files.")    # Validasi jika gagal
+df, file_name = result    # Pecah hasil ke dalam dataframe dan nama file
 
-if df is None:
+if df is None:    # Jika dataframe kosong, hentikan
     st.stop()
 
 # === Process DataFrame Features ===
 feature_columns = [         # Menentukan kolom fitur yang digunakan untuk perhitungan
     'title_vectorizer', 'property_type_vectorizer', 
-    'tags_vectorizer', 'area_vectorizer', 'price_info'
+    'tags_vectorizer', 'area_vectorizer', 'price_info'    # Kolom fitur yang digunakan
 ]
 
 df[feature_columns] = df[feature_columns].fillna(0)     # Mengisi nilai NaN dengan 0 pada kolom fitur
@@ -130,34 +130,34 @@ def safe_eval(x):
                 return np.array(json.loads(x))  # Mencoba parsing sebagai JSON
             except (json.JSONDecodeError, TypeError):
                 return np.array([0])  # Jika masih gagal, kembalikan array nol
-    return np.array(x)
+    return np.array(x)    # Jika sudah array, langsung kembalikan
 
 # Mengonversi vektor pada semua kolom fitur kecuali 'price_info'
 for col in feature_columns:
-    if col != 'price_info':  # Pastikan hanya fitur lain yang diproses
-        df[col] = df[col].apply(safe_eval)
+    if col != 'price_info':  # Pastikan hanya fitur lain yang diproses, Jangan proses kolom price_info
+        df[col] = df[col].apply(safe_eval)    # Ubah semua kolom string vector jadi array
 
 # Menggabungkan semua fitur ke dalam satu array numpy
 combined_features = np.array([np.hstack([row[col] for col in feature_columns if col != 'price_info']) for _, row in df.iterrows()])
 
 # Menghitung matriks kesamaan kosinus antar properti
-similarity_matrix = cosine_similarity(combined_features)
+similarity_matrix = cosine_similarity(combined_features)    # Hitung similarity antar properti
 
 # === Property Recommendation Function ===
 def recommend_properties(selected_area, selected_property_type, top_n=4):
     # Filter dataset berdasarkan area dan property type
     filtered_df = df[(df["area"] == selected_area) & (df["property_type"] == selected_property_type)]
 
-    if filtered_df.empty:
+    if filtered_df.empty:    # Jika hasil kosong
         return "No properties found for this selection"
 
     # Menggunakan properti pertama sebagai referensi untuk rekomendasi
-    reference_index = filtered_df.index[0]
-    similar_indices = np.argsort(similarity_matrix[reference_index])[::-1][1:top_n+1]
+    reference_index = filtered_df.index[0]    # Ambil properti pertama sebagai acuan
+    similar_indices = np.argsort(similarity_matrix[reference_index])[::-1][1:top_n+1]    # Urutkan properti serupa
 
-    return df.iloc[similar_indices][["title", "image_url", "price_info", "area", "property_type"]]
+    return df.iloc[similar_indices][["title", "image_url", "price_info", "area", "property_type"]]    # Kembalikan data rekomendasi
 
-# **Header**
+# Header dan deskripsi
 st.markdown(
     "<h2 style='text-align: center; color: black; font-size: 40px;'>"
     "Discover the Finest Vacation Rentals in Bali and Yogyakarta</h2>",
@@ -167,7 +167,7 @@ st.markdown("<p style='text-align: center;'>We are here to fulfill your desire f
 st.markdown("<p style='text-align: center;'>The choice is yours.</p>", unsafe_allow_html=True)
 st.markdown("---")      # Menambahkan garis pemisah
 
-# Tambahkan CSS untuk mengatur lebar selectbox
+# Tambahkan CSS untuk mengatur lebar selectbox, styling untuk dropdown
 st.markdown(
     """
     <style>
@@ -184,8 +184,8 @@ selected_area = st.selectbox("📍 Select Location:", df["area"].unique())
 selected_property_type = st.selectbox("🏠 Select Property Type:", df["property_type"].unique())
 
 # **Button to Get Recommendations**
-if st.button("✨ Get Recommendations"):
-    recommended = recommend_properties(selected_area, selected_property_type)
+if st.button("✨ Get Recommendations"):    # Jika tombol ditekan
+    recommended = recommend_properties(selected_area, selected_property_type)    # Ambil hasil rekomendasi
 
     if isinstance(recommended, str):  # Jika properti tidak ditemukan, tampilkan pesan error
         st.error(recommended)
@@ -194,10 +194,10 @@ if st.button("✨ Get Recommendations"):
 
         # **Display results in a grid**
         cols = st.columns(2)  # Membagi tampilan ke dalam 2 kolom
-        for idx, (_, row) in enumerate(recommended.iterrows()):
-            with cols[idx % 2]:
-                st.image(row["image_url"], width=350)
-                st.subheader(row["title"])
-                st.write(f"🗺️ **Location:** {row['area']}")
-                st.write(f"🏡 **Type:** {row['property_type']}")
-                st.write(f"💸 **Price:** {row['price_info']}")
+        for idx, (_, row) in enumerate(recommended.iterrows()):    # Loop hasil
+            with cols[idx % 2]:    # Tampilkan secara bergantian di dua kolom
+                st.image(row["image_url"], width=350)    # Gambar properti
+                st.subheader(row["title"])    # Judul properti
+                st.write(f"🗺️ **Location:** {row['area']}")    # Lokasi
+                st.write(f"🏡 **Type:** {row['property_type']}")    # Tipe
+                st.write(f"💸 **Price:** {row['price_info']}")    # Harga
